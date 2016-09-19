@@ -1,5 +1,5 @@
 Constructor/ Destructor
-Dump message (Example:)
+Dump message. Example:
     Stack {
     ctr = 2
     arr [10]: {
