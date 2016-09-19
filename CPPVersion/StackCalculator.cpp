@@ -5,8 +5,8 @@
 #define PARROT 2147483647
 
 #define log(string) { cout << "Line: " << __LINE__ << "\t Function: " << __PRETTY_FUNCTION__ << "\t File: " << __FILE__ << " - "  << string << "\n";  }
-#define STACKFUNC(code)   {                       \
-                            ControlObject control(__LINE__, __PRETTY_FUNCTION__, __FILE__, this, &Stack::ok);\
+#define FUNC(code)   {                       \
+                            ControlObject control(__LINE__, __PRETTY_FUNCTION__, __FILE__, this);\
                             {code}                \
                           }                       \
 
@@ -15,6 +15,7 @@
 using namespace std;
 
 class Stack;
+class ControlObject;
 
 enum State{
     ZEROWARNING = 0, ENDWARNING = 0, OK = 0, BOUNDSERROR = 1
@@ -38,40 +39,16 @@ class ControlObject{
 private:
     static int level__;
 
-    typedef OKResult (Stack::*ok_t)() const;
-
     const Stack* stk_;
-    ok_t ok_;
     int line_;
     const char *func_, *file_ ;
 public:
-    ControlObject(const int line, const char* func, const char* file, const Stack* stk, ok_t ok) :
-    line_ (line),
-    func_ (func),
-    file_ (file),
-    ok_ (ok),
-    stk_ (stk)
-    {
-        OKResult res = (stk_->*ok_)();
-        printf("%*s>>>Line:%d  Function: %s  File: %s - %s \n", level__ * 4, "", line_, func_, file_, res.message);
-        if(res.state){
-            printf("throw AKException(res); \n");
-        }
-        level__++;
-    }
+    ControlObject(const int line, const char* func, const char* file, const Stack* stk);
 
-    ~ControlObject(){
-        OKResult res = (stk_->*ok_)();
-        level__--;
-        printf("%*s<<<Line:%d  Function: %s  File: %s - %s \n", level__ * 4, "", line_, func_, file_, res.message);
-        if(res.state){
-            printf("throw AKException(res); \n");
-        }
-    }
+    ~ControlObject();
 };
 
 int ControlObject::level__ = 0;
-
 
 class Stack{
 private:
@@ -124,39 +101,39 @@ public:
         return OKResult{ stt, msg } ;
     }
 
-    void push(int value) STACKFUNC(
+    void push(int value) FUNC(
         arr[ctr] = value;
         ctr++;
     )
 
-    int pop() STACKFUNC(
+    int pop() FUNC(
         ctr--;
         int res = arr[ctr];
         arr[ctr] = 0;
         return res;
     )
 
-    void add() STACKFUNC (
+    void add() FUNC (
         int res = pop() + pop();
         push(res);
     )
 
-    void deduct() STACKFUNC(
+    void deduct() FUNC(
         int res = pop() - pop();
         push(res);
     )
 
-    void multi() STACKFUNC(
+    void multi() FUNC(
         int res = pop() * pop();
         push(res);
     )
 
-    void devide() STACKFUNC(
+    void devide() FUNC(
         int res = pop() / pop();
         push(res);
     )
 
-    void dump() STACKFUNC(
+    void dump() FUNC(
         printf("Stack{ \n");
         for(int i = 0; i < arrLen; i++){
             printf("\t %c[%d]: %d \n", i < ctr? '~' : ' ', i, arr[i]);
@@ -167,6 +144,29 @@ public:
         printf("} \n\n");
     )
 };
+
+ControlObject::ControlObject(const int line, const char* func, const char* file, const Stack* stk) :                   //TODO TEMPLATE
+    line_ (line),
+    func_ (func),
+    file_ (file),
+    stk_ (stk)
+    {
+        OKResult res = stk_->ok();
+        printf("%*s>>>Line:%d  Function: %s  File: %s - %s \n", level__ * 4, "", line_, func_, file_, res.message);
+        if(res.state){
+            printf("throw AKException(res); \n");
+        }
+        level__++;
+    }
+
+ControlObject::~ControlObject(){
+    OKResult res = stk_->ok();
+    level__--;
+    printf("%*s<<<Line:%d  Function: %s  File: %s - %s \n", level__ * 4, "", line_, func_, file_, res.message);
+    if(res.state){
+        printf("throw AKException(res); \n");
+    }
+}
 
 
 int main(){
