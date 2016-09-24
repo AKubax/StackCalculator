@@ -1,60 +1,98 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cstring>
 
 #include "C:\cppProjects/AKDebug/AKDebug.h"
 
-#define PARROT 0x
+#define PARROT 1235236
+#define POISON 0xDEADF
 
 class Stack;
 
 class Stack{
 private:
+    int safeBegin = PARROT;
+
     int* buf;
     int* arr;
     int ctr;
     int arrLen;
 
-    const int nParrots = 3;
+    int nParrots;
+
+    int totalAdd;
+
+//    int updateTotalAdd(){
+//        return ((int) buf) + ((int) arr) + ((int) &ctr) + ((int) &arrLen) + ((int) &nParrots) + ((int) &totalAdd) + ((int) &safeBegin) + ((int) &safeEnd);
+//    }
+
+    void spillPoison(){
+        for(int i = 0; i < arrLen; i++){
+            arr[i] = POISON;
+        }
+    }
 
 public:
     Stack() :
-    buf (new int[16]),
-    arr (buf + nParrots),
-    ctr (0),
-    arrLen(10)
-    {}
+    buf ( (printf("buf \n"), new int[16]) ),
+    arr ( (printf("arr \n"), buf + nParrots) ),
+    ctr ( (printf("ctr \n"), 0) ),
+    arrLen ( (printf("arrLen \n"), 10) ),
+    nParrots ( (printf("nParrots \n"), 3) ),
+    totalAdd (0)                                             //TODO Fix all constructor. DEBUG EVERYWHERE.                                                                                                 //THIS STACK CAN SURVIVE IN A NUCLEAR EXPLOSION AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+    {
+        printf("Constructor started \n");
+
+        for(int i = 0; i < 16; i++){
+            if(i > 2 && i < 14) continue;
+
+            printf("Trying to make parrot \n");
+
+            buf[i] = PARROT;
+        }
+        printf("Spilling poison \n");
+        spillPoison();
+    }
 
     ~Stack(){
         delete [] arr;
+        delete [] buf;
     }
 
+
     OKResult ok() const{
-        State stt = OK;
+        bool error = false;
         char* msg = "";
 
-        //Checking parrots
-        for(int i = 0; i < 16; i++){
-            if(i > 2 && i < 14)  continue;
+        //Checking class parrots
+        if(safeBegin != PARROT || safeEnd != PARROT){
+            error = true;
+            msg = strcat(msg, "|Somebody has incorrect access for class members|");
+        }
 
-            if(arr[i] != PARROT){
-                stt = BOUNDSERROR;
-                msg = "Some value is out of bounds. ";
-                break;
+        //Checking stack parrots
+        for(int i = 0; i < 16; i++){
+            if(i > 2 && i < 14) continue;
+
+            if(buf[i] != PARROT){
+                error = true;
+                msg = strcat(msg, "|You or higher power has got out of stack bounds|");
             }
         }
 
-        //Checking warnings
-        if(ctr == 3 || ctr == 13){
-            stt = stt == OK?   ctr == 3? ZEROWARNING : ENDWARNING   :   stt;
-            if(msg == "")
-                msg = "Be careful! You can go out of bounds" ;
+        //Checking if counter was illegally modified
+        for(int i = ctr; i < arrLen; i++){
+            if(arr[i] != POISON){
+                error = true;
+                msg = strcat(msg, "|Stack counter was illegally modified|");
+            }
         }
 
-        //Checking OK
-        if(msg == "") msg == "Everything is OK" ;
-
-        return OKResult{ stt, msg } ;
+        //Checking if u r in unsafe zone
+        if(ctr == 0 || ctr == (arrLen - 1)){
+            msg = strcat(msg, "|WARNING! You can go out of bounds with the next action|");
+        }
     }
 
     void push(int value) FUNC(
@@ -65,7 +103,7 @@ public:
     int pop() FUNC(
         ctr--;
         int res = arr[ctr];
-        arr[ctr] = 0;
+        arr[ctr] = POISON;
         return res;
     )
 
@@ -99,5 +137,8 @@ public:
 
         printf("} \n\n");
     )
+
+
+    int safeEnd = PARROT;
 };
 
