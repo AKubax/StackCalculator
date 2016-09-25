@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <cstring>
 
-#include "C:\cppProjects/AKDebug/AKDebug.h"
+#include "../../AKDebug/AKDebug.h"
 
-#define PARROT 1235236
-#define POISON 0xDEADF
+#define PARROT 0x15072003
+#define POISON 0xDEADF00D
 
 class Stack;
 
@@ -17,11 +17,14 @@ private:
     int* buf;
     int* arr;
     int ctr;
-    int arrLen;
 
+    int arrLen;
     int nParrots;
+    int bufLen;
 
     int totalAdd;
+
+    const int safeEnd = PARROT;
 
 //    int updateTotalAdd(){
 //        return ((int) buf) + ((int) arr) + ((int) &ctr) + ((int) &arrLen) + ((int) &nParrots) + ((int) &totalAdd) + ((int) &safeBegin) + ((int) &safeEnd);
@@ -40,6 +43,7 @@ public:
     ctr ( (printf("ctr \n"), 0) ),
     arrLen ( (printf("arrLen \n"), 10) ),
     nParrots ( (printf("nParrots \n"), 3) ),
+    bufLen ( arrLen + nParrots * 2 ),
     totalAdd (0)                                             //TODO Fix all constructor. DEBUG EVERYWHERE.                                                                                                 //THIS STACK CAN SURVIVE IN A NUCLEAR EXPLOSION AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     {
         printf("Constructor started \n");
@@ -62,37 +66,42 @@ public:
 
 
     OKResult ok() const{
-        bool error = false;
-        char* msg = "";
+        OKResult ok;
+
+        //Checking bufLen and arrLen connection
+        if(bufLen != arrLen + nParrots * 2){
+            ok.error = true;
+
+        }
 
         //Checking class parrots
         if(safeBegin != PARROT || safeEnd != PARROT){
-            error = true;
-            msg = strcat(msg, "|Somebody has incorrect access for class members|");
+            ok.error = true;
+            ok.message += "|Somebody has incorrect access for class members|";
         }
 
         //Checking stack parrots
-        for(int i = 0; i < 16; i++){
-            if(i > 2 && i < 14) continue;
-
+        for(int i = 0; i < nParrots; i++){
             if(buf[i] != PARROT){
-                error = true;
-                msg = strcat(msg, "|You or higher power has got out of stack bounds|");
+                ok.error = true;
+                ok.message += "|You or higher power has got out of stack bounds|";
             }
         }
 
         //Checking if counter was illegally modified
         for(int i = ctr; i < arrLen; i++){
             if(arr[i] != POISON){
-                error = true;
-                msg = strcat(msg, "|Stack counter was illegally modified|");
+                ok.error = true;
+                ok.message += "|Stack counter was illegally modified|";
             }
         }
 
         //Checking if u r in unsafe zone
         if(ctr == 0 || ctr == (arrLen - 1)){
-            msg = strcat(msg, "|WARNING! You can go out of bounds with the next action|");
+            ok.message += "|WARNING! You can go out of bounds with the next action|";
         }
+
+        return OKResult{ ok.error, ok.message};
     }
 
     void push(int value) FUNC(
@@ -138,7 +147,4 @@ public:
         printf("} \n\n");
     )
 
-
-    int safeEnd = PARROT;
 };
-
